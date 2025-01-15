@@ -15,3 +15,11 @@
     primaryClass = {cs.LG}
 }
 ```
+
+## Setup the environment
+
+To setup the environment, you may follow the following procedure:
+
+- Create a virtual environment using VSCode
+- Select the virtual environment
+- Run this command in your terminal `pip install -r requirements.txt`

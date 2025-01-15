@@ -6,7 +6,7 @@ import torch.nn.functional as F
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class SlotAttention(nn.Module):
-    def __init__(self, num_slots, dim, iters = 3, eps = 1e-8, hidden_dim = 128):
+    def __init__(self, num_slots, dim, iters=3, eps=1e-8, hidden_dim=128):
         super().__init__()
         self.num_slots = num_slots
         self.iters = iters
@@ -27,8 +27,8 @@ class SlotAttention(nn.Module):
         self.fc1 = nn.Linear(dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, dim)
 
-        self.norm_input  = nn.LayerNorm(dim)
-        self.norm_slots  = nn.LayerNorm(dim)
+        self.norm_input = nn.LayerNorm(dim)
+        self.norm_slots = nn.LayerNorm(dim)
         self.norm_pre_ff = nn.LayerNorm(dim)
 
     def forward(self, inputs, num_slots = None):
@@ -39,8 +39,8 @@ class SlotAttention(nn.Module):
         sigma = self.slots_sigma.expand(b, n_s, -1)
         slots = torch.normal(mu, sigma)
 
-        inputs = self.norm_input(inputs)        
-        k, v = self.to_k(inputs), self.to_v(inputs)
+        inputs = self.norm_input(inputs)
+        k, v = self.to_k(inputs), self.to_v(inputs) 
 
         for _ in range(self.iters):
             slots_prev = slots
@@ -107,7 +107,7 @@ class Encoder(nn.Module):
         x = F.relu(x)
         x = self.conv4(x)
         x = F.relu(x)
-        x = x.permute(0,2,3,1)
+        x = x.permute(0, 2, 3, 1)
         x = self.encoder_pos(x)
         x = torch.flatten(x, 1, 2)
         return x
@@ -127,7 +127,7 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         x = self.decoder_pos(x)
-        x = x.permute(0,3,1,2)
+        x = x.permute(0, 3, 1, 2)
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
@@ -140,8 +140,8 @@ class Decoder(nn.Module):
         x = self.conv5(x)
         x = F.relu(x)
         x = self.conv6(x)
-        x = x[:,:,:self.resolution[0], :self.resolution[1]]
-        x = x.permute(0,2,3,1)
+        x = x[:, :, :self.resolution[0], :self.resolution[1]]
+        x = x.permute(0, 2, 3, 1)
         return x
 
 """Slot Attention-based auto-encoder for object discovery."""
@@ -169,7 +169,7 @@ class SlotAttentionAutoEncoder(nn.Module):
             num_slots=self.num_slots,
             dim=hid_dim,
             iters = self.num_iterations,
-            eps = 1e-8, 
+            eps = 1e-8,
             hidden_dim = 128)
 
     def forward(self, image):
@@ -196,14 +196,14 @@ class SlotAttentionAutoEncoder(nn.Module):
         # `x` has shape: [batch_size*num_slots, width, height, num_channels+1].
 
         # Undo combination of slot and batch dimension; split alpha masks.
-        recons, masks = x.reshape(image.shape[0], -1, x.shape[1], x.shape[2], x.shape[3]).split([3,1], dim=-1)
+        recons, masks = x.reshape(image.shape[0], -1, x.shape[1], x.shape[2], x.shape[3]).split([3, 1], dim=-1)
         # `recons` has shape: [batch_size, num_slots, width, height, num_channels].
         # `masks` has shape: [batch_size, num_slots, width, height, 1].
 
         # Normalize alpha masks over slots.
         masks = nn.Softmax(dim=1)(masks)
         recon_combined = torch.sum(recons * masks, dim=1)  # Recombine image.
-        recon_combined = recon_combined.permute(0,3,1,2)
+        recon_combined = recon_combined.permute(0, 3, 1, 2)
         # `recon_combined` has shape: [batch_size, width, height, num_channels].
 
         return recon_combined, recons, masks, slots
